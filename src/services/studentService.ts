@@ -1,6 +1,6 @@
 import { Student } from '@/types/student';
 
-const API_BASE_URL = 'https://student-crud-37cq.onrender.com/api/v2';
+const API_BASE_URL = 'https://student-crud-isrr.onrender.com/api/v2';
 
 interface ApiResponse<T> {
   timestamp: string;
