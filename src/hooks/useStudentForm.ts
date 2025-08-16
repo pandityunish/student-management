@@ -5,8 +5,6 @@ export const useStudentForm = (initialState: Partial<Student> = {}) => {
   const [formData, setFormData] = useState<Partial<Student>>({
     name: '',
     email: '',
-    age: 0,
-    grade: '',
     ...initialState
   });
 
@@ -14,7 +12,7 @@ export const useStudentForm = (initialState: Partial<Student> = {}) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'age' ? parseInt(value) || 0 : value
+      [name]: value
     }));
   };
 
@@ -22,8 +20,6 @@ export const useStudentForm = (initialState: Partial<Student> = {}) => {
     setFormData({
       name: '',
       email: '',
-      age: 0,
-      grade: '',
       ...initialState
     });
   };
