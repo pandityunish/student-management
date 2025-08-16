@@ -1,103 +1,158 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Student } from '@/types/student';
+import StudentTable from '@/components/StudentTable';
+import { StudentForm } from '@/components/StudentForm';
+import {
+  getStudents,
+  createStudent,
+  updateStudent,
+  deleteStudent as deleteStudentApi,
+} from '@/services/studentService';
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [students, setStudents] = useState<Student[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [currentStudent, setCurrentStudent] = useState<Partial<Student> | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const fetchStudents = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getStudents();
+      console.log(data);
+      setStudents(data);
+      setError(null);
+    } catch (err) {
+      setError('Failed to load students. Please try again later.');
+      console.error('Error fetching students:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStudents();
+  }, []);
+
+  const handleAddStudent = () => {
+    setCurrentStudent(null);
+    setIsFormOpen(true);
+  };
+
+  const handleEditStudent = (student: Student) => {
+    setCurrentStudent(student);
+    setIsFormOpen(true);
+  };
+
+  const handleDeleteStudent = async (roll_no: number) => {
+    if (window.confirm('Are you sure you want to delete this student?')) {
+      try {
+        await deleteStudentApi(roll_no);
+        await fetchStudents();
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Failed to delete student');
+      }
+    }
+  };
+
+  const handleSubmit = async (studentData: Omit<Student, 'roll_no'>) => {
+    try {
+      setIsSubmitting(true);
+      setError(null);
+
+      if (currentStudent?.roll_no) {
+        // Update existing student
+        await updateStudent(currentStudent.roll_no, studentData);
+      } else {
+        // Create new student
+        await createStudent(studentData);
+      }
+
+      await fetchStudents();
+      setIsFormOpen(false);
+      setCurrentStudent(null);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="sm:flex sm:items-center sm:justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Students</h1>
+            <p className="mt-2 text-sm text-gray-600">
+              {students.length} {students.length === 1 ? 'student' : 'students'} in total
+            </p>
+          </div>
+          <div className="mt-4 sm:mt-0">
+            <button
+              type="button"
+              onClick={handleAddStudent}
+              className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto"
+            >
+              <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+              </svg>
+              Add Student
+            </button>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {error && (
+          <div className="rounded-md bg-red-50 p-4 mb-8">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">{error}</h3>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div className="text-center py-16">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+              <p className="mt-3 text-sm text-gray-500">Loading student data...</p>
+            </div>
+          </div>
+        ) : isFormOpen ? (
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <StudentForm
+              initialData={currentStudent || undefined}
+              onSubmit={handleSubmit}
+              onCancel={() => setIsFormOpen(false)}
+              isSubmitting={isSubmitting}
+            />
+          </div>
+        ) : (
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900">Student Directory</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                A list of all students in the system.
+              </p>
+            </div>
+            <StudentTable
+              students={students}
+              onEdit={handleEditStudent}
+              onDelete={handleDeleteStudent}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
